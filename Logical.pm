@@ -9,7 +9,7 @@ require Exporter;
 @Lingua::IW::Logical::ISA = qw(Exporter);
 @Lingua::IW::Logical::EXPORT = qw(log2vis_string log2vis_text);
 @Lingua::IW::Logical::EXPORT_OK = qw(set_debug);
-$Lingua::IW::Logical::VERSION="0.4";
+$Lingua::IW::Logical::VERSION="0.5";
 
 ################################################################################
 #   Logical-Visual Hebrew subroutines

@@ -32,7 +32,7 @@ text. Default is newline.
 Example 1:
 
 	#!/usr/bin/perl
-	use Hebrew;
+	use Lingua::IW::Logical;
 
 	while(<>)
 	{
@@ -44,7 +44,7 @@ This short program will convert any text in logical Hebrew to readable visual He
 Example 2:
 
 	#!/usr/bin/perl
-	use Hebrew;
+	use Lingua::IW::Logical;
 
 	while(<>)
 	{
