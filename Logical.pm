@@ -1,14 +1,14 @@
 #!/usr/bin/perl -w
-package Hebrew;
+package Lingua::IW::Logical;
 
 use strict;
 use integer;
 
 require Exporter;
 
-@Hebrew::ISA = qw(Exporter);
-@Hebrew::EXPORT = qw(log2vis_string log2vis_text);
-$Hebrew::VERSION="0.1";
+@Lingua::IW::Logical::ISA = qw(Exporter);
+@Lingua::IW::Logical::EXPORT = qw(log2vis_string log2vis_text);
+$Lingua::IW::Logical::VERSION="0.2";
 
 ################################################################################
 #   Logical-Visual Hebrew subroutines
