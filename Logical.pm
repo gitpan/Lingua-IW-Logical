@@ -8,7 +8,8 @@ require Exporter;
 
 @Lingua::IW::Logical::ISA = qw(Exporter);
 @Lingua::IW::Logical::EXPORT = qw(log2vis_string log2vis_text);
-$Lingua::IW::Logical::VERSION="0.2";
+@Lingua::IW::Logical::EXPORT_OK = qw(set_debug);
+$Lingua::IW::Logical::VERSION="0.3";
 
 ################################################################################
 #   Logical-Visual Hebrew subroutines
@@ -61,6 +62,10 @@ sub get_type {
     return $NEUTRAL_ON;
 }
 
+sub set_debug {
+    my($db)=@_;
+    $debug=$db;
+}
 
 # main reverse subroutine
 # expects text in "logical" encoding, converts to "visual"
@@ -74,7 +79,7 @@ sub log2vis_string ($) {
     # making levels
     my(@str_types)=map { &get_type($_) } split(//,$str); # get character types
 
-    print join(":",@str_types),"\n" if $debug;
+    print "{",join(":",@str_types),"}\n" if $debug;
 
     # resolving weak types
     # see page 3-15 to 3-23
@@ -93,7 +98,7 @@ sub log2vis_string ($) {
 	}
 
 	# EN, ET -> EN,EN
-	if($i>0 && $str_types[$i-1] == $WEAK_EN && $str_types[$i] == $WEAK_ET) {
+	if($i>0 && $str_types[$i-1] == $WEAK_EN && $str_types[$i] == $WEAK_ET && $str_types[$i+1] != $STRONG_RTL) {
 		$str_types[$i]=$WEAK_EN;
 		next;
 	}
@@ -104,35 +109,42 @@ sub log2vis_string ($) {
 		next;
 	}
 
-	# L, ES, EN -> L, N, EN
-	if($i>0 && $str_types[$i-1] == $STRONG_LTR && $str_types[$i+1] == $WEAK_EN) {
+	# otherwise: L, ES, EN -> L, N, EN
+	# etc.
+	## if($i>0 && $str_types[$i-1] == $STRONG_LTR && $str_types[$i+1] == $WEAK_EN) {
+	if($str_types[$i] == $WEAK_CS || $str_types[$i] == $WEAK_ES || $str_types[$i] == $WEAK_ET) {
 	    $str_types[$i]=$NEUTRAL_ON;
 	    next;
 	}
 
     } ## for
     
-    print join(":",@str_types),"\n" if $debug;
+    print "<",join(":",@str_types),">\n" if $debug;
 
     # making directions
     # r - RTL, l - LTR, n - neutral (takes current direction), e - embedding level direction
     
     my($levels)='-' x $len;     # initially characters have no directionality
     my($base)='';               # base directionality of the string
+    my($last_strong,@next_strong)=();
     for($i=0;$i<$len;$i++) {
 	# first strong character is LTR - all before are LTR
 	if($str_types[$i] == $STRONG_LTR) {
 	    substr($levels,$i,1) = 'l';
-	    substr($levels,0,$i) = 'l' x $i unless $base;
-	    $base='l';
+#	    substr($levels,0,$i) = 'l' x $i unless $base;
+	    $base='l' unless $base;
+	    for(my($j)=$last_strong;$j<$i;$j++) { $next_strong[$j]=$STRONG_LTR; }
+	    $last_strong=$i;
 	    next;
 	}
 
 	# first strong character is RTL - all before are RTL
 	if($str_types[$i] == $STRONG_RTL) {
 	    substr($levels,$i,1) = 'r';
-	    substr($levels,0,$i) = 'r' x $i unless $base;
-	    $base='r';
+#	    substr($levels,0,$i) = 'r' x $i unless $base;
+	    $base='r' unless $base;
+	    for(my($j)=$last_strong;$j<$i;$j++) { $next_strong[$j]=$STRONG_RTL; }
+	    $last_strong=$i;
 	    next;
 	}
 	
@@ -203,10 +215,10 @@ sub log2vis_string ($) {
     print $levels,"\n" if $debug;
 
     # compose string
-    my($dir)=substr($str,0,1);   # current direction
+    my($dir)=$base; ##substr($str,0,1);   # current direction
     my($cursor)=0;
     my($outstr)='';
-    
+    my($nowdir)=$dir;
     for($i=0;$i<$len;$i++) {
 	my($c)=substr($str,$i,1);
 	if(substr($levels,$i,1) eq 'l') {
@@ -216,14 +228,25 @@ sub log2vis_string ($) {
 	    $dir = 'r';
 	}
 
-	my($nowdir)=$dir;
+	if(substr($levels,$i,1) eq 'e') {
+	    if($dir eq 'r' && $next_strong[$i] == $STRONG_LTR) {
+		# $dir = 'l';
+	    } 
+	    elsif($dir eq 'l' && $next_strong[$i] == $STRONG_RTL) {
+		$dir = 'r'
+		}
+	    elsif($next_strong[$i] == '') {
+		$dir = $base;
+	    }
+	}
+
+	$nowdir=$dir;
 	
 	# space between LTR and RTL is moved towards RTL, like
 	# abc ABC -> CBA abc
-	if($dir eq 'l' && substr($levels,$i,1) eq 'e' && substr($levels,$i+1,1) eq 'r') {
-	    $nowdir='r'
+	if(substr($levels,$i,1) eq 'e' && $dir eq 'l' && $next_strong[$i] == $STRONG_RTL) {
+	    $nowdir = 'r';
 	}
-
 
 	if(substr($levels,$i,1) eq 'n') {
 	    $nowdir='l';
@@ -236,7 +259,7 @@ sub log2vis_string ($) {
 	substr($outstr,$cursor,0)=$c;
 	
 	$cursor++ if $nowdir eq 'l';
-	print "$dir:$nowdir:$cursor: $outstr\n" if $debug;
+	print "$dir:$nowdir:$cursor: [$outstr]\n" if $debug;
     }
     
     return $outstr;
@@ -260,11 +283,11 @@ sub log2vis_text {
 	
 	while(length($visstr) > $string_len) { # we need to divide
 	    substr($visstr,-$string_len) =~ /.*?\s(.*)/; # find first space after length
-	    $outtext .= ( defined($before) ? $before : ' ' x ($string_len - length($1)) ). $1 . $after;  # 
+	    $outtext .= ( defined($before) ? $before : ' ' x ($string_len - length($1) - 1) ). $1 . $after;  # 
 	    substr($visstr,-length($1))='';
 	} 
 	
-	$outtext .= (defined($before) ? $before : ' ' x ($string_len - length($visstr)) ) . $visstr . $after; 
+	$outtext .= (defined($before) ? $before : ' ' x ($string_len - length($visstr) - 1) ) . $visstr . $after; 
     }
     return $outtext;
 }
