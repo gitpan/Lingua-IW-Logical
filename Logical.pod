@@ -56,7 +56,7 @@ This example show how you can HTML-ize file in logical hebrew, so that you can p
 =head1 KNOWN BUGS
 
 Bug reports are welcome.
-There are some unresolved things with constructions like "H-1", where H is hebrew letter. The parser now think it's number "-1", while in thebre this might as well be dash. Also, seems that Word like to write percents as "%12.5". This is also not rendered well. I'm thinking how to resolve these issues. 
+There are some unresolved things with constructions like "H-1", where H is hebrew letter. The parser now thinks it's number "-1", while in this context it might as well be dash. Also, it seems that Word likes to write percents as "%12.5". This is also not rendered well. I'm thinking how to resolve these issues. 
 
 =head1 AUTHOR
 
